@@ -1,7 +1,7 @@
 package state
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"endnet-cli/pkg/models"
@@ -9,26 +9,37 @@ import (
 
 // Retriever gathers state from infrastructure providers.
 type Retriever interface {
-	Current(cfg *models.Config) (*models.State, error)
+	Current(spec models.EndnetSpec) (*models.RemoteState, error)
 }
 
-// Snapshotter is a trivial implementation of Retriever used for bootstrapping.
-type Snapshotter struct{}
+// Snapshotter is a placeholder Retriever that returns empty provider state.
+type Snapshotter struct {
+	Now func() time.Time
+}
 
-// NewRetriever creates a Retriever implementation suitable for development
-// environments until real integrations are available.
+// NewRetriever constructs a development-friendly Retriever implementation.
 func NewRetriever() Retriever {
-	return &Snapshotter{}
+	return &Snapshotter{Now: time.Now}
 }
 
-// Current provides a static snapshot of the world for now.
-func (r *Snapshotter) Current(cfg *models.Config) (*models.State, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("configuration must not be nil")
+// Current produces a deterministic RemoteState snapshot for bootstrapping.
+func (r *Snapshotter) Current(spec models.EndnetSpec) (*models.RemoteState, error) {
+	if spec.Project == "" {
+		return nil, errors.New("spec project must not be empty")
 	}
 
-	return &models.State{
-		RetrievedAt: time.Now(),
-		Summary:     "static snapshot",
+	now := r.Now()
+
+	return &models.RemoteState{
+		Hetzner: models.HetznerState{
+			Networks:  []models.Network{},
+			Routes:    []models.Route{},
+			Servers:   []models.Server{},
+			Firewalls: []models.Firewall{},
+		},
+		IPv64: models.IPv64State{
+			Domains: map[string]models.Domain{},
+		},
+		RetrievedAt: now,
 	}, nil
 }
