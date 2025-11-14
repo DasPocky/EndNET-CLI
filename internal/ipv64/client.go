@@ -1,6 +1,10 @@
 package ipv64
 
-import "endnet-cli/pkg/models"
+import (
+	"fmt"
+
+	"endnet-cli/pkg/models"
+)
 
 // Client exposes the subset of the IPv64 API required by the controller.
 type Client interface {
@@ -20,6 +24,9 @@ func NewClient() Client {
 
 // Authenticate stores the API token for later use.
 func (c *APIClient) Authenticate(token string) error {
+	if token == "" {
+		return fmt.Errorf("token must not be empty")
+	}
 	c.token = token
 	return nil
 }
@@ -30,5 +37,10 @@ func (c *APIClient) ListRecords() ([]models.DNSRecord, error) {
 		return nil, models.ErrUnauthenticated
 	}
 
-	return []models.DNSRecord{{Name: "example.com", Address: "192.0.2.1"}}, nil
+	return []models.DNSRecord{{
+		Type:  "A",
+		Name:  "endnet.ipv64.net",
+		Value: "192.0.2.1",
+		TTL:   300,
+	}}, nil
 }
